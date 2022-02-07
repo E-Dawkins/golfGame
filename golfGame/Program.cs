@@ -117,7 +117,7 @@ namespace golfGame
             RaylibExt.centerText("Stroke", 25, new Vector2(windowWidth / 8, 15), Color.BLACK);
             RaylibExt.centerText(curShot.ToString(), 30, new Vector2(windowWidth / 8, 40), Color.BLACK);
             RaylibExt.centerText("Best", 25, new Vector2((windowWidth / 8) * 7, 15), Color.BLACK);
-            RaylibExt.centerText(bestShot.ToString(), 30, new Vector2((windowWidth / 8) * 7, 40), Color.WHITE);
+            RaylibExt.centerText(bestShot.ToString(), 30, new Vector2((windowWidth / 8) * 7, 40), Color.BLACK);
 
             Raylib.EndDrawing();
         }
