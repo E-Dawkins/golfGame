@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Numerics;
 using Raylib_cs;
 
@@ -13,6 +14,13 @@ namespace golfGame
         public float radius = 12;
     }
 
+    class Hole
+    {
+        public Vector2 pos = new Vector2();
+        public float radius = 24;
+        public int holeNum = 1;
+    }
+
     class Program
     {
         int windowWidth = 600;
@@ -20,10 +28,13 @@ namespace golfGame
 
         int curShot = 0;
         int bestShot = 0;
+        List<String> bestScores = new List<string>();
 
         Ball ball;
+        Hole hole;
         Texture2D arrow;
         Texture2D arrowHead;
+        Texture2D box;
 
         static void Main(string[] args)
         {
@@ -55,33 +66,65 @@ namespace golfGame
 
             arrow = Raylib.LoadTexture("./Assets/arrow.png");
             arrowHead = Raylib.LoadTexture("./Assets/arrowHead.png");
+            box = Raylib.LoadTexture("./Assets/box.png");
+
+            hole = new Hole();
+            hole.pos = new Vector2(windowWidth / 2, windowHeight * 0.25f);
+
+            // load best score text file
+            string file = Directory.GetParent(Directory.GetParent(Directory.GetParent(Environment.CurrentDirectory).ToString()).ToString()) + @"\Assets\bestScores.txt";
+
+            if (File.Exists(file))
+            {
+                string[] lines = File.ReadAllLines(file);
+
+                foreach (string line in lines)
+                {
+                    bestScores.Add(line);
+                }
+            }
         }
 
         void Update()
         {
             UpdateBall(ball);
+            HoleCollision(hole, ball);
+            LoadLevel(hole, ball);
 
-            if (Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)) // rotate ball direction anti-clockwise
+            if (ball.speed == 0)
             {
-                ball.dir = Vec2.rotateDirection(ball.dir, -0.1f);
+                if (Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)) // rotate ball direction anti-clockwise
+                {
+                    ball.dir = Vec2.rotateDirection(ball.dir, -0.1f);
+                }
+
+                if (Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT)) // rotate ball direction clockwise
+                {
+                    ball.dir = Vec2.rotateDirection(ball.dir, 0.1f);
+                }
+
+                if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE)) // increase power meter, when space held
+                {
+                    ball.storedSpeed += 0.5f;
+                }
+
+                if (Raylib.IsKeyReleased(KeyboardKey.KEY_SPACE)) // use the power when space released
+                {
+                    ball.speed = ball.storedSpeed;
+                    ball.storedSpeed = 0;
+                    curShot += 1;
+                }
             }
 
-            if (Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT)) // rotate ball direction clockwise
+            try
             {
-                ball.dir = Vec2.rotateDirection(ball.dir, 0.1f);
+                bestShot = Convert.ToInt32(bestScores[hole.holeNum - 1]);
             }
-
-            if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE) && ball.speed == 0) // increase power meter, when space held
+            catch
             {
-                ball.storedSpeed += 0.5f;
+                bestShot = 0;
             }
-
-            if (Raylib.IsKeyReleased(KeyboardKey.KEY_SPACE) && ball.speed == 0) // use the power when space released
-            {
-                ball.speed = ball.storedSpeed;
-                ball.storedSpeed = 0;
-                curShot += 1;
-            }
+            
         }
 
         void UpdateBall(Ball b)
@@ -97,10 +140,30 @@ namespace golfGame
             if (b.pos.Y > windowHeight - b.radius) ball.dir.Y *= -1;
         }
 
+        void HoleCollision(Hole h, Ball b)
+        {
+            if (Vector2.Distance(b.pos, h.pos) < h.radius) // ball close enough to hole
+            {
+                if (curShot < bestShot)
+                {
+                    string file = Directory.GetParent(Directory.GetParent(Directory.GetParent(Environment.CurrentDirectory).ToString()).ToString()) + @"\Assets\bestScores.txt";
+
+                    if (File.Exists(file)) // write to best scores file
+                    {
+                        bestScores[hole.holeNum - 1] = curShot.ToString();
+                        File.WriteAllLines(file, bestScores);
+                    }
+                }
+            }
+        }
+
         void Draw()
         {
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.GREEN);
+
+            // draw hole
+            Raylib.DrawCircle((int)hole.pos.X, (int)hole.pos.Y, hole.radius, Color.DARKBROWN);
 
             // ball and aim arrow
             float rotation = (float)(Math.Atan2(ball.dir.Y, ball.dir.X) / (2 * Math.PI));
@@ -120,6 +183,41 @@ namespace golfGame
             RaylibExt.centerText(bestShot.ToString(), 30, new Vector2((windowWidth / 8) * 7, 40), Color.BLACK);
 
             Raylib.EndDrawing();
+        }
+
+        void LoadLevel(Hole h, Ball b)
+        {
+            // read level data from levels folder, using hole number
+            string file = Directory.GetParent(Directory.GetParent(Directory.GetParent(Environment.CurrentDirectory).ToString()).ToString()) + @"\Assets\Levels\" + h.holeNum + ".txt";
+
+            if (File.Exists(file))
+            {
+                string[] lines = File.ReadAllLines(file);
+
+                foreach (string line in lines)
+                {
+                    if (line != null && line != "") // only does this for not blank lines
+                    {
+                        string[] parts = line.Split(",");
+                        RaylibExt.DrawTexture(box, windowWidth*float.Parse(parts[0]), windowHeight * float.Parse(parts[1]), float.Parse(parts[2]), float.Parse(parts[3]), Color.SKYBLUE, 0, 0.5f, 0.5f);
+
+                        float top = (windowHeight * float.Parse(parts[1])) - (float.Parse(parts[3]) / 2);
+                        float bottom = (windowHeight * float.Parse(parts[1])) + (float.Parse(parts[3]) / 2);
+                        float right = (windowWidth*float.Parse(parts[0])) + (float.Parse(parts[2]) / 2);
+                        float left = (windowWidth * float.Parse(parts[0])) - (float.Parse(parts[2]) / 2);
+
+                        if (b.pos.Y > top && b.pos.Y < bottom && b.pos.X > left && b.pos.X < right) // colliding with box
+                        {
+                            Vector2 dir = (new Vector2(windowWidth * float.Parse(parts[0]), windowHeight * float.Parse(parts[1])) - b.pos);
+
+                            if (dir.Y > 0) b.dir.Y *= -1;
+                            if (dir.Y < 0) b.dir.Y *= -1;
+                            if (dir.X < 0) b.dir.X *= -1;
+                            if (dir.X > 0) b.dir.X *= -1;
+                        }
+                    }
+                }
+            }
         }
     }
 }
