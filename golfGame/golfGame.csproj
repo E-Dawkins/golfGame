@@ -10,10 +10,26 @@
   <ItemGroup>
     <None Remove="Assets\bestScores.txt" />
     <None Remove="Assets\Levels\1.txt" />
+    <None Remove="Assets\Levels\2.txt" />
+    <None Remove="Assets\Levels\3.txt" />
+    <None Remove="Assets\Levels\4.txt" />
+    <None Remove="Assets\Levels\5.txt" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Assets\bestScores.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Levels\5.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Levels\4.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Levels\3.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Levels\2.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\Levels\1.txt">
