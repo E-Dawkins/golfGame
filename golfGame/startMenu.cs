@@ -21,6 +21,10 @@ namespace golfGame
         Button exit;
         Game game = new Game();
 
+        public static bool onStartMenu = true;
+        bool inLevelsScreen = false;
+        bool inInfoScreen = false;
+
         public void LoadMenu()
         {
             buttonSize = new Vector2(game.windowWidth / 2, game.windowHeight / 8);
@@ -45,10 +49,158 @@ namespace golfGame
 
         public void Update()
         {
+            if (curButton == "New Game")
+            {
+                setNewGame();
+                curButton = "";
+            }
+
+            if (curButton == "Level Select")
+            {
+                selectLevel();
+            }
+
+            if (curButton == "How To Play")
+            {
+                infoScreen();
+            }
+
+            if (curButton == "Exit")
+            {
+                exitGame();
+            }
+
             detectClick(newGame);
             detectClick(levelSelect);
             detectClick(info);
             detectClick(exit);
+
+            if (inLevelsScreen || inInfoScreen) // moves buttons out of way
+            {
+                newGame.pos = new Vector2(10000,10000);
+                levelSelect.pos = new Vector2(10000, 10000);
+                info.pos = new Vector2(10000, 10000);
+                exit.pos = new Vector2(10000, 10000);
+            }
+            else
+            {
+                LoadMenu();
+            }
+        }
+
+        void setNewGame()
+        {
+            onStartMenu = false;
+            curButton = "";
+
+            // load best score text file
+            string file = "./Assets/bestScores.txt";
+
+            if (File.Exists(file))
+            {
+                string lines = "0\n0\n0\n0\n0\n0\n0\n0\n0";
+
+                File.WriteAllText(file, lines);
+            }
+
+            // reset hole number
+            file = "./Assets/holeNum.txt";
+            File.WriteAllText(file, "1");
+        }
+
+        void selectLevel()
+        {
+            inLevelsScreen = true;
+            buttonSize = new Vector2(100, 100);
+            textOffset = new Vector2(100/2, 100/3);
+
+            // draw 9 boxes + title
+            RaylibExt.centerText("Level Select", 50, new Vector2(game.windowWidth / 2, game.windowHeight * 0.075f), Color.WHITE);
+
+            int thisName = 1;
+            int offset = 50;
+
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    Button b = new Button();
+
+                    b.pos = new Vector2((game.windowWidth / 4)*(j+1)-offset, 150*(i+1)+(offset*0.5f));
+                    b.name = thisName.ToString();
+
+                    DrawButton(b);
+                    detectClick(b);
+
+                    thisName++;
+
+                    if (curButton == b.name)
+                    {
+                        onStartMenu = false;
+                        curButton = "";
+                        inLevelsScreen = false;
+
+                        string file = "./Assets/holeNum.txt";
+                        File.WriteAllText(file, b.name);
+                    }
+                }
+            }
+
+            Button backButton = new Button();
+
+            buttonSize = new Vector2(game.windowWidth / 2, game.windowHeight / 8);
+            textOffset = new Vector2(game.windowWidth / 4, game.windowHeight / 32 + 5);
+
+            backButton.pos = new Vector2((game.windowWidth / 4), game.windowHeight * 0.8f);
+            backButton.name = "Back To Menu";
+
+            DrawButton(backButton);
+            detectClick(backButton);
+
+            if (curButton == backButton.name)
+            {
+                inLevelsScreen = false;
+            }
+        }
+
+        void infoScreen()
+        {
+            inInfoScreen = true;
+
+            RaylibExt.centerText("How To Play", 50, new Vector2(game.windowWidth / 2, game.windowHeight * 0.075f), Color.WHITE);
+
+            string file = "./Assets/info.txt";
+
+            if (File.Exists(file))
+            {
+                string[] lines = File.ReadAllLines(file);
+
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    RaylibExt.centerText(lines[i], 35, new Vector2(game.windowWidth / 2, (game.windowHeight / 8)*(i+2)), Color.WHITE);
+                }
+            }
+
+            Button backButton = new Button();
+
+            buttonSize = new Vector2(game.windowWidth / 2, game.windowHeight / 8);
+            textOffset = new Vector2(game.windowWidth / 4, game.windowHeight / 32 + 5);
+
+            backButton.pos = new Vector2((game.windowWidth / 4), game.windowHeight * 0.7f);
+            backButton.name = "Back To Menu";
+
+            DrawButton(backButton);
+            detectClick(backButton);
+
+            if (curButton == backButton.name)
+            {
+                inInfoScreen = false;
+            }
+        }
+
+        void exitGame()
+        {
+            Environment.Exit(0);
         }
 
         public void Draw()
@@ -56,10 +208,14 @@ namespace golfGame
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.GREEN);
 
-            DrawButton(newGame);
-            DrawButton(levelSelect);
-            DrawButton(info);
-            DrawButton(exit);
+            if (!inLevelsScreen && !inInfoScreen) // main menu
+            {
+                RaylibExt.centerText("Mini Golf", 50, new Vector2(game.windowWidth / 2, game.windowHeight * 0.075f), Color.WHITE);
+                DrawButton(newGame);
+                DrawButton(levelSelect);
+                DrawButton(info);
+                DrawButton(exit);
+            }
 
             Raylib.EndDrawing();
         }
@@ -92,7 +248,6 @@ namespace golfGame
                 if (canClick(b.pos, buttonSize))
                 {
                     curButton = b.name;
-                    Console.WriteLine(curButton);
                 }
             }
         }

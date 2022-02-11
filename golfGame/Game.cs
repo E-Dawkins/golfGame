@@ -18,7 +18,6 @@ namespace golfGame
     {
         public Vector2 pos = new Vector2();
         public float radius = 24;
-        public int holeNum = 1;
     }
 
     class Game
@@ -26,20 +25,31 @@ namespace golfGame
         public int windowWidth = 600;
         public int windowHeight = 800;
 
-        public bool onStartMenu = true;
-
         int curShot = 0;
         int bestShot = 0;
         List<String> bestScores = new List<string>();
 
         Ball ball;
         Hole hole;
+        Button resumeButton = new Button();
+        Button quitButton = new Button();
+
+        public int holeNum = 1;
+
         Texture2D arrow;
         Texture2D arrowHead;
         Texture2D box;
 
+        bool gamePaused = false;
+        string curButton = "";
+        Vector2 buttonSize = new Vector2();
+        Vector2 textOffset = new Vector2();
+
         public void LoadGame()
         {
+            buttonSize = new Vector2(windowWidth / 2, windowHeight / 8);
+            textOffset = new Vector2(windowWidth / 4, windowHeight / 32 + 5);
+
             ball = new Ball();
             ball.pos = new Vector2(windowWidth / 2, windowHeight * 0.75f);
             ball.dir = new Vector2(0, -1);
@@ -50,61 +60,147 @@ namespace golfGame
 
             hole = new Hole();
             hole.pos = new Vector2(windowWidth / 2, windowHeight * 0.25f);
+        }
+
+        public void Update()
+        {
+            // check if game should be paused
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_ESCAPE))
+            {
+                gamePaused = true;
+            }
+
+            if (gamePaused)
+            {
+                paused();
+            }
+
+            // load hole number
+            string file = "./Assets/holeNum.txt";
+            holeNum = Convert.ToInt32(File.ReadAllText(file));
 
             // load best score text file
-            string file = Directory.GetParent(Directory.GetParent(Directory.GetParent(Environment.CurrentDirectory).ToString()).ToString()) + @"\Assets\bestScores.txt";
+            string file2 = "./Assets/bestScores.txt";
 
-            if (File.Exists(file))
+            bestScores.Clear();
+
+            if (File.Exists(file2))
             {
-                string[] lines = File.ReadAllLines(file);
+                string[] lines = File.ReadAllLines(file2);
 
                 foreach (string line in lines)
                 {
                     bestScores.Add(line);
                 }
             }
-        }
 
-        public void Update()
-        {
-            UpdateBall(ball);
-            HoleCollision(hole, ball);
-            LoadLevel(hole, ball);
-
-            if (ball.speed == 0)
+            if (!gamePaused)
             {
-                if (Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)) // rotate ball direction anti-clockwise
-                {
-                    ball.dir = Vec2.rotateDirection(ball.dir, -0.1f);
-                }
+                UpdateBall(ball);
+                HoleCollision(hole, ball);
+                LoadLevel(hole, ball);
 
-                if (Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT)) // rotate ball direction clockwise
+                if (ball.speed == 0)
                 {
-                    ball.dir = Vec2.rotateDirection(ball.dir, 0.1f);
-                }
+                    if (Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)) // rotate ball direction anti-clockwise
+                    {
+                        ball.dir = Vec2.rotateDirection(ball.dir, -0.1f);
+                    }
 
-                if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE)) // increase power meter, when space held
-                {
-                    ball.storedSpeed += 0.5f;
-                }
+                    if (Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT)) // rotate ball direction clockwise
+                    {
+                        ball.dir = Vec2.rotateDirection(ball.dir, 0.1f);
+                    }
 
-                if (Raylib.IsKeyReleased(KeyboardKey.KEY_SPACE)) // use the power when space released
-                {
-                    ball.speed = ball.storedSpeed;
-                    ball.storedSpeed = 0;
-                    curShot += 1;
+                    if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE)) // increase power meter, when space held
+                    {
+                        ball.storedSpeed += 0.5f;
+                    }
+
+                    if (Raylib.IsKeyReleased(KeyboardKey.KEY_SPACE)) // use the power when space released
+                    {
+                        ball.speed = ball.storedSpeed;
+                        ball.storedSpeed = 0;
+                        curShot += 1;
+                    }
                 }
             }
 
             try
             {
-                bestShot = Convert.ToInt32(bestScores[hole.holeNum - 1]);
+                bestShot = Convert.ToInt32(bestScores[holeNum - 1]);
             }
             catch
             {
                 bestShot = 0;
             }
-            
+
+            // write hole number
+            File.WriteAllText(file, holeNum.ToString());
+        }
+
+        void paused()
+        {
+            int offset = 100;
+
+            resumeButton.name = "Resume";
+            resumeButton.pos = new Vector2(windowWidth/4, (windowHeight/2) - offset - 50);
+
+            quitButton.name = "Exit To Menu";
+            quitButton.pos = new Vector2(windowWidth / 4, (windowHeight/2) + offset - 50);
+
+            detectClick(resumeButton);
+            detectClick(quitButton);
+
+            if (curButton == "Resume")
+            {
+                gamePaused = false;
+                curButton = "";
+            }
+
+            if (curButton == "Exit To Menu")
+            {
+                startMenu.onStartMenu = true;
+                gamePaused = false;
+                curButton = "";
+
+                ball.speed = 0;
+                ball.pos = new Vector2(windowWidth / 2, windowHeight * 0.75f);
+                ball.dir = new Vector2(0, -1);
+                curShot = 0;
+            }
+        }
+
+        void DrawButton(Button b)
+        {
+            Raylib.DrawRectangleRounded(new Rectangle(b.pos.X, b.pos.Y, buttonSize.X, buttonSize.Y), 0.5f, 1, Color.BLACK);
+            RaylibExt.centerText(b.name, 40, b.pos + textOffset, Color.WHITE);
+        }
+
+        bool canClick(Vector2 buttonPos, Vector2 buttonSize)
+        {
+            Vector2 mousePos = Raylib.GetMousePosition();
+
+            if (mousePos.X >= buttonPos.X - buttonSize.X / 2 + textOffset.X && mousePos.X <= buttonPos.X + buttonSize.X / 2 + textOffset.X)
+            {
+                if (mousePos.Y >= buttonPos.Y - buttonSize.Y / 2 + textOffset.Y && mousePos.Y <= buttonPos.Y + buttonSize.Y / 2 + textOffset.Y)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        void detectClick(Button b)
+        {
+            if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_LEFT_BUTTON))
+            {
+                if (canClick(b.pos, buttonSize))
+                {
+                    curButton = b.name;
+                }
+            }
         }
 
         void UpdateBall(Ball b)
@@ -126,11 +222,11 @@ namespace golfGame
             {
                 if (curShot < bestShot || bestShot == 0) // changes high score for that hole
                 {
-                    string file = Directory.GetParent(Directory.GetParent(Directory.GetParent(Environment.CurrentDirectory).ToString()).ToString()) + @"\Assets\bestScores.txt";
+                    string file = "./Assets/bestScores.txt";
 
                     if (File.Exists(file)) // write to best scores file
                     {
-                        if (h.holeNum < 9) bestScores[h.holeNum - 1] = curShot.ToString();
+                        if (holeNum < 9) bestScores[holeNum - 1] = curShot.ToString();
                         File.WriteAllLines(file, bestScores);
                     }
                 }
@@ -138,8 +234,8 @@ namespace golfGame
                 b.speed = 0;
                 b.pos = new Vector2(windowWidth / 2, windowHeight * 0.75f);
                 ball.dir = new Vector2(0, -1);
-                if (h.holeNum < 9) h.holeNum += 1;
-                else h.holeNum = 1;
+                if (holeNum < 9) holeNum += 1;
+                else holeNum = 1;
                 curShot = 0;
             }
         }
@@ -166,7 +262,7 @@ namespace golfGame
             // level name
             Raylib.DrawRectangle(0, windowHeight - 75, windowWidth, 75, Color.DARKBLUE);
             Raylib.DrawRectangle(0, windowHeight - 75, windowWidth, 5, Color.BLACK);
-            RaylibExt.centerText("Level - " + hole.holeNum, 40, new Vector2(windowWidth / 2, windowHeight - 55), Color.WHITE);
+            RaylibExt.centerText("Level - " + holeNum, 40, new Vector2(windowWidth / 2, windowHeight - 55), Color.WHITE);
 
             // stroke and best stroke text
             RaylibExt.centerText("Stroke", 20, new Vector2(windowWidth / 8, 15), Color.BLACK);
@@ -174,13 +270,19 @@ namespace golfGame
             RaylibExt.centerText("Best", 20, new Vector2((windowWidth / 8) * 7, 15), Color.BLACK);
             RaylibExt.centerText(bestShot.ToString(), 35, new Vector2((windowWidth / 8) * 7, 35), Color.BLACK);
 
+            if (gamePaused)
+            {
+                DrawButton(resumeButton);
+                DrawButton(quitButton);
+            }
+
             Raylib.EndDrawing();
         }
 
         void LoadLevel(Hole h, Ball b)
         {
             // read level data from levels folder, using hole number
-            string file = Directory.GetParent(Directory.GetParent(Directory.GetParent(Environment.CurrentDirectory).ToString()).ToString()) + @"\Assets\Levels\" + h.holeNum + ".txt";
+            string file = "./Assets/Levels/" + holeNum + ".txt";
 
             if (File.Exists(file))
             {

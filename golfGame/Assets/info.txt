@@ -1,0 +1,3 @@
+Aim   :   <  >
+Power   :   Spacebar
+Buttons   :   Left Click
