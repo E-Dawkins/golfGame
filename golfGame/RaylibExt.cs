@@ -1,4 +1,5 @@
 ﻿using Raylib_cs;
+using System.Collections;
 using System.Numerics;
 
 namespace Raylib_cs
@@ -18,6 +19,11 @@ namespace Raylib_cs
         {
             int centerAmount = Raylib.MeasureText(inText, fontSize) / 2;
             Raylib.DrawText(inText, (int)position.X - centerAmount, (int)position.Y, fontSize, color);
+        }
+
+        public static void Clear(params IList[] lists)
+        {
+            foreach (var list in lists) list.Clear();
         }
     }
 

@@ -19,7 +19,6 @@ namespace golfGame
         Button levelSelect;
         Button info;
         Button exit;
-        Game game = new Game();
 
         public static bool onStartMenu = true;
         bool inLevelsScreen = false;
@@ -27,23 +26,23 @@ namespace golfGame
 
         public void LoadMenu()
         {
-            buttonSize = new Vector2(game.windowWidth / 2, game.windowHeight / 8);
-            textOffset = new Vector2(game.windowWidth / 4, game.windowHeight / 32 + 5);
+            buttonSize = new Vector2(Program.game.windowWidth / 2, Program.game.windowHeight / 8);
+            textOffset = new Vector2(Program.game.windowWidth / 4, Program.game.windowHeight / 32 + 5);
 
             newGame = new Button();
-            newGame.pos = new Vector2(game.windowWidth/4, game.windowHeight * 0.2f);
+            newGame.pos = new Vector2(Program.game.windowWidth/4, Program.game.windowHeight * 0.2f);
             newGame.name = "New Game";
 
             levelSelect = new Button();
-            levelSelect.pos = new Vector2(game.windowWidth/4, game.windowHeight * 0.4f);
+            levelSelect.pos = new Vector2(Program.game.windowWidth/4, Program.game.windowHeight * 0.4f);
             levelSelect.name = "Level Select";
 
             info = new Button();
-            info.pos = new Vector2(game.windowWidth / 4, game.windowHeight * 0.6f);
+            info.pos = new Vector2(Program.game.windowWidth / 4, Program.game.windowHeight * 0.6f);
             info.name = "How To Play";
 
             exit = new Button();
-            exit.pos = new Vector2(game.windowWidth / 4, game.windowHeight * 0.8f);
+            exit.pos = new Vector2(Program.game.windowWidth / 4, Program.game.windowHeight * 0.8f);
             exit.name = "Exit";
         }
 
@@ -104,8 +103,7 @@ namespace golfGame
             }
 
             // reset hole number
-            file = "./Assets/holeNum.txt";
-            File.WriteAllText(file, "1");
+            Program.game.holeNum = 1;
         }
 
         void selectLevel()
@@ -115,7 +113,7 @@ namespace golfGame
             textOffset = new Vector2(100/2, 100/3);
 
             // draw 9 boxes + title
-            RaylibExt.centerText("Level Select", 50, new Vector2(game.windowWidth / 2, game.windowHeight * 0.075f), Color.WHITE);
+            RaylibExt.centerText("Level Select", 50, new Vector2(Program.game.windowWidth / 2, Program.game.windowHeight * 0.075f), Color.WHITE);
 
             int thisName = 1;
             int offset = 50;
@@ -126,7 +124,7 @@ namespace golfGame
                 {
                     Button b = new Button();
 
-                    b.pos = new Vector2((game.windowWidth / 4)*(j+1)-offset, 150*(i+1)+(offset*0.5f));
+                    b.pos = new Vector2((Program.game.windowWidth / 4)*(j+1)-offset, 150*(i+1)+(offset*0.5f));
                     b.name = thisName.ToString();
 
                     DrawButton(b);
@@ -140,18 +138,17 @@ namespace golfGame
                         curButton = "";
                         inLevelsScreen = false;
 
-                        string file = "./Assets/holeNum.txt";
-                        File.WriteAllText(file, b.name);
+                        Program.game.holeNum = Convert.ToInt32(b.name);
                     }
                 }
             }
 
             Button backButton = new Button();
 
-            buttonSize = new Vector2(game.windowWidth / 2, game.windowHeight / 8);
-            textOffset = new Vector2(game.windowWidth / 4, game.windowHeight / 32 + 5);
+            buttonSize = new Vector2(Program.game.windowWidth / 2, Program.game.windowHeight / 8);
+            textOffset = new Vector2(Program.game.windowWidth / 4, Program.game.windowHeight / 32 + 5);
 
-            backButton.pos = new Vector2((game.windowWidth / 4), game.windowHeight * 0.8f);
+            backButton.pos = new Vector2((Program.game.windowWidth / 4), Program.game.windowHeight * 0.8f);
             backButton.name = "Back To Menu";
 
             DrawButton(backButton);
@@ -167,7 +164,7 @@ namespace golfGame
         {
             inInfoScreen = true;
 
-            RaylibExt.centerText("How To Play", 50, new Vector2(game.windowWidth / 2, game.windowHeight * 0.075f), Color.WHITE);
+            RaylibExt.centerText("How To Play", 50, new Vector2(Program.game.windowWidth / 2, Program.game.windowHeight * 0.075f), Color.WHITE);
 
             string file = "./Assets/info.txt";
 
@@ -177,16 +174,16 @@ namespace golfGame
 
                 for (int i = 0; i < lines.Length; i++)
                 {
-                    RaylibExt.centerText(lines[i], 35, new Vector2(game.windowWidth / 2, (game.windowHeight / 8)*(i+2)), Color.WHITE);
+                    RaylibExt.centerText(lines[i], 35, new Vector2(Program.game.windowWidth / 2, (Program.game.windowHeight / 8)*(i+2)), Color.WHITE);
                 }
             }
 
             Button backButton = new Button();
 
-            buttonSize = new Vector2(game.windowWidth / 2, game.windowHeight / 8);
-            textOffset = new Vector2(game.windowWidth / 4, game.windowHeight / 32 + 5);
+            buttonSize = new Vector2(Program.game.windowWidth / 2, Program.game.windowHeight / 8);
+            textOffset = new Vector2(Program.game.windowWidth / 4, Program.game.windowHeight / 32 + 5);
 
-            backButton.pos = new Vector2((game.windowWidth / 4), game.windowHeight * 0.7f);
+            backButton.pos = new Vector2((Program.game.windowWidth / 4), Program.game.windowHeight * 0.7f);
             backButton.name = "Back To Menu";
 
             DrawButton(backButton);
@@ -210,7 +207,7 @@ namespace golfGame
 
             if (!inLevelsScreen && !inInfoScreen) // main menu
             {
-                RaylibExt.centerText("Mini Golf", 50, new Vector2(game.windowWidth / 2, game.windowHeight * 0.075f), Color.WHITE);
+                RaylibExt.centerText("Mini Golf", 50, new Vector2(Program.game.windowWidth / 2, Program.game.windowHeight * 0.075f), Color.WHITE);
                 DrawButton(newGame);
                 DrawButton(levelSelect);
                 DrawButton(info);

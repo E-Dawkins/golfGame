@@ -4,9 +4,11 @@ namespace golfGame
 {
     internal class Program
     {
+        public static Game game;
+
         static void Main(string[] args)
         {
-            Game game = new Game();
+            game = new Game();
             startMenu sMenu = new startMenu();
 
             Raylib.InitWindow(game.windowWidth, game.windowHeight, "Golf");
