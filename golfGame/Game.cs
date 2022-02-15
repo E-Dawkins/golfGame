@@ -9,8 +9,8 @@ namespace golfGame
     {
         public Vector2 pos = new Vector2();
         public Vector2 dir = new Vector2();
-        public float speed = 0;
-        public float storedSpeed = 0;
+        public Vector2 speed = new Vector2(0,0);
+        public Vector2 storedSpeed = new Vector2(0,0);
         public float radius = 12;
     }
 
@@ -135,7 +135,7 @@ namespace golfGame
                 detectBoxCol(ball);
                 drawBoxes();
 
-                if (ball.speed == 0)
+                if (ball.speed == new Vector2(0,0))
                 {
                     if (Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)) // rotate ball direction anti-clockwise
                     {
@@ -149,13 +149,13 @@ namespace golfGame
 
                     if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE)) // increase power meter, when space held
                     {
-                        ball.storedSpeed += 0.5f;
+                        ball.storedSpeed += new Vector2(0.5f, 0.5f);
                     }
 
                     if (Raylib.IsKeyReleased(KeyboardKey.KEY_SPACE)) // use the power when space released
                     {
                         ball.speed = ball.storedSpeed;
-                        ball.storedSpeed = 0;
+                        ball.storedSpeed = new Vector2(0,0);
                         curShot += 1;
                     }
                 }
@@ -170,8 +170,9 @@ namespace golfGame
                 bestShot = 0;
             }
 
-            // update moving boxes
+            // update special boxes (moving, fan, pop)
             updateMovingBoxes();
+            updateFanBoxes(ball);
         }
 
         void paused()
@@ -201,7 +202,7 @@ namespace golfGame
                 curButton = "";
                 firstLoad = true;
 
-                ball.speed = 0;
+                ball.speed = Vector2.Zero;
                 ball.dir = new Vector2(0, -1);
                 curShot = 0;
 
@@ -244,8 +245,10 @@ namespace golfGame
         void UpdateBall(Ball b)
         {
             b.pos += b.dir * b.speed;
-            if (b.speed > 0) b.speed -= 0.25f; // slow down ball each frame
-            b.storedSpeed = Math.Clamp(b.storedSpeed, 0, 25); // clamp stored speed, min and max
+            if (b.speed.X > 0) b.speed.X -= 0.25f; // slow down ball each frame
+            if (b.speed.Y > 0) b.speed.Y -= 0.25f;
+            b.storedSpeed.X = Math.Clamp(b.storedSpeed.X, -15, 25); // clamp stored speed, min and max
+            b.storedSpeed.Y = Math.Clamp(b.storedSpeed.Y, 0, 25);
 
             // bounce off screen edges
             if (b.pos.X < 0 + ball.radius) ball.dir.X = MathF.Abs(ball.dir.X);
@@ -270,7 +273,7 @@ namespace golfGame
                 }
 
                 // resets values for next level
-                b.speed = 0;
+                b.speed = Vector2.Zero;
                 ball.dir = new Vector2(0, -1);
                 if (holeNum < 9) holeNum += 1;
                 else holeNum = 1;
@@ -299,7 +302,7 @@ namespace golfGame
             Raylib.DrawRectangle(0, 0, windowWidth, 75, Color.DARKBLUE);
             Raylib.DrawRectangle(0, 75, windowWidth, 5, Color.BLACK);
             Raylib.DrawRectangleGradientH((windowWidth / 2) - 150, 25, 300, 25, Color.YELLOW, Color.RED);
-            RaylibExt.DrawTexture(arrowHead, ((windowWidth/2)-150) + (ball.storedSpeed * 11.15f), 45, 15, 15, Color.WHITE, 0, 0, 0);
+            RaylibExt.DrawTexture(arrowHead, ((windowWidth/2)-150) + (ball.storedSpeed.X * 11.15f), 45, 15, 15, Color.WHITE, 0, 0, 0);
 
             // level name
             Raylib.DrawRectangle(0, windowHeight - 75, windowWidth, 75, Color.DARKBLUE);
@@ -495,6 +498,54 @@ namespace golfGame
                     else // change to next target point
                     {
                         targetNums[i] = (targetNums[i] + 1) % 2;
+                    }
+                }
+            }
+        }
+
+        void updateFanBoxes(Ball b)
+        {
+            float fanAmount = 8;
+
+            if (boxPos.Count() != 0)
+            {
+                for (int i = 0; i < fanBoxes.Count(); i++) // for each fan box
+                {
+                    float top = boxColPos[fanBoxes[i]].Y - (boxColSize[fanBoxes[i]].Y / 2);
+                    float bottom = boxColPos[i].Y + (boxColSize[i].Y / 2);
+                    float left = boxColPos[i].X - (boxColSize[fanBoxes[i]]).X / 2;
+                    float right = boxColPos[i].X + (boxColSize[fanBoxes[i]]).X / 2;
+
+                    if (fanDirection[i] == new Vector2(0, -1)) // up
+                    {
+                        if (b.pos.X < right && b.pos.X > left && b.pos.Y < top && b.pos.Y > top - 300 && b.pos.Y > 75 + b.radius)
+                        {
+                            b.pos.Y -= fanAmount;
+                        }
+                    }
+
+                    if (fanDirection[i] == new Vector2(0, 1)) // down
+                    {
+                        if (b.pos.X < right && b.pos.X > left && b.pos.Y > bottom && b.pos.Y < bottom + 300 && b.pos.Y < windowHeight - 75 - b.radius)
+                        {
+                            b.pos.Y += fanAmount;
+                        }
+                    }
+
+                    if (fanDirection[i] == new Vector2(-1, 0)) // left
+                    {
+                        if (b.pos.Y < bottom && b.pos.Y > top && b.pos.X < left && b.pos.X > left - 300 && b.pos.X > b.radius)
+                        {
+                            b.pos.X -= fanAmount;
+                        }
+                    }
+
+                    if (fanDirection[i] == new Vector2(1, 0)) // left
+                    {
+                        if (b.pos.Y < bottom && b.pos.Y > top && b.pos.X > right && b.pos.X < right + 300 && b.pos.X < windowWidth - b.radius)
+                        {
+                            b.pos.X += fanAmount;
+                        }
                     }
                 }
             }
