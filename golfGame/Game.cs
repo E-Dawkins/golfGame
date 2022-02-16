@@ -62,6 +62,7 @@ namespace golfGame
 
         List<Vector2> fanDirection = new List<Vector2>();
         List<Vector2> popSizes = new List<Vector2>();
+        List<Vector2> orgPopSizes = new List<Vector2>();
         List<float> popCoolDowns = new List<float>();
         List<float> orgCoolDowns = new List<float>();
 
@@ -393,8 +394,9 @@ namespace golfGame
                                 i++;
 
                                 popSizes.Add(new Vector2(float.Parse(parts2[0]), float.Parse(parts2[1])));
-                                popCoolDowns.Add(float.Parse(parts[2]));
-                                orgCoolDowns.Add(float.Parse(parts[2]));
+                                orgPopSizes.Add(new Vector2(float.Parse(parts[2]), float.Parse(parts[3])));
+                                popCoolDowns.Add(float.Parse(parts2[2]));
+                                orgCoolDowns.Add(float.Parse(parts2[2]));
                             }
                         }
                     }
@@ -435,6 +437,14 @@ namespace golfGame
                         if (smallestDistance == distances[1]) b.pos.Y += nudgeDistance; // bottom
                         if (smallestDistance == distances[2]) b.pos.X -= nudgeDistance; // left
                         if (smallestDistance == distances[3]) b.pos.X += nudgeDistance; // right
+                    }
+
+                    if (popBoxes.Contains(i))
+                    {
+                        if (smallestDistance == distances[0]) b.pos.Y = top; // top
+                        if (smallestDistance == distances[1]) b.pos.Y = bottom; // bottom
+                        if (smallestDistance == distances[2]) b.pos.X = left; // left
+                        if (smallestDistance == distances[3]) b.pos.X = right; // right
                     }
                 }
             }
@@ -587,14 +597,32 @@ namespace golfGame
                     if (curCooldown > 0)
                     {
                         curCooldown -= Raylib.GetFrameTime();
+                        popCoolDowns[i] = curCooldown;
+
+                        float xDiff = 0;
+                        float yDiff = 0;
+
+                        if (boxSize[popBoxes[i]].X > orgPopSizes[popBoxes[i]].X)
+                        {
+                            xDiff -= (popSizes[i].X - orgPopSizes[popBoxes[i]].X) / (orgCoolDowns[i] * 60);
+
+                            if (boxSize[popBoxes[i]].Y > orgPopSizes[popBoxes[i]].Y)
+                            {
+                                yDiff -= (popSizes[i].Y - orgPopSizes[popBoxes[i]].Y) / (orgCoolDowns[i] * 60);
+                            }
+                        }
+
+                        boxSize[popBoxes[i]] = new Vector2(boxSize[popBoxes[i]].X + xDiff, boxSize[popBoxes[i]].Y + yDiff);
                     }
 
                     if (curCooldown <= 0) // do the pop
                     {
-
+                        boxSize[popBoxes[i]] = popSizes[i];
 
                         popCoolDowns[i] = orgCoolDowns[i];
                     }
+
+                    boxColSize[popBoxes[i]] = boxSize[popBoxes[i]];
                 }
             }
         }
