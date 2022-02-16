@@ -40,6 +40,7 @@ namespace golfGame
         Texture2D arrow;
         Texture2D arrowHead;
         Texture2D box;
+        Texture2D fanBox;
 
         bool gamePaused = false;
         string curButton = "";
@@ -61,6 +62,8 @@ namespace golfGame
 
         List<Vector2> fanDirection = new List<Vector2>();
         List<Vector2> popSizes = new List<Vector2>();
+        List<float> popCoolDowns = new List<float>();
+        List<float> orgCoolDowns = new List<float>();
 
         public void LoadGame()
         {
@@ -73,6 +76,7 @@ namespace golfGame
             arrow = Raylib.LoadTexture("./Assets/arrow.png");
             arrowHead = Raylib.LoadTexture("./Assets/arrowHead.png");
             box = Raylib.LoadTexture("./Assets/box.png");
+            fanBox = Raylib.LoadTexture("./Assets/fanBox.png");
 
             hole = new Hole();
         }
@@ -173,6 +177,7 @@ namespace golfGame
             // update special boxes (moving, fan, pop)
             updateMovingBoxes();
             updateFanBoxes(ball);
+            updatePopBoxes();
         }
 
         void paused()
@@ -244,17 +249,20 @@ namespace golfGame
 
         void UpdateBall(Ball b)
         {
+            b.storedSpeed = Vector2.Clamp(b.storedSpeed, new Vector2(0, 0), new Vector2(25, 25));
+            b.speed = Vector2.Clamp(b.speed, new Vector2(0, 0), new Vector2(25, 25));
+
             b.pos += b.dir * b.speed;
             if (b.speed.X > 0) b.speed.X -= 0.25f; // slow down ball each frame
             if (b.speed.Y > 0) b.speed.Y -= 0.25f;
-            b.storedSpeed.X = Math.Clamp(b.storedSpeed.X, -15, 25); // clamp stored speed, min and max
-            b.storedSpeed.Y = Math.Clamp(b.storedSpeed.Y, 0, 25);
 
             // bounce off screen edges
             if (b.pos.X < 0 + ball.radius) ball.dir.X = MathF.Abs(ball.dir.X);
             if (b.pos.X > windowWidth - ball.radius) ball.dir.X = -MathF.Abs(ball.dir.X);
             if (b.pos.Y < 0 + 75 + ball.radius) ball.dir.Y = MathF.Abs(ball.dir.Y);
             if (b.pos.Y > windowHeight - 75 - ball.radius) ball.dir.Y = -MathF.Abs(ball.dir.Y);
+
+            //Console.WriteLine($"{b.dir} : {b.speed}");
         }
 
         void HoleCollision(Hole h, Ball b)
@@ -385,6 +393,8 @@ namespace golfGame
                                 i++;
 
                                 popSizes.Add(new Vector2(float.Parse(parts2[0]), float.Parse(parts2[1])));
+                                popCoolDowns.Add(float.Parse(parts[2]));
+                                orgCoolDowns.Add(float.Parse(parts[2]));
                             }
                         }
                     }
@@ -471,7 +481,15 @@ namespace golfGame
         {
             for (int i = 0; i < boxPos.Count; i++)
             {
-                RaylibExt.DrawTexture(box, boxPos[i].X, boxPos[i].Y, boxSize[i].X, boxSize[i].Y, Color.SKYBLUE, 0, 0.5f, 0.5f);
+                if (fanBoxes.Contains(i))
+                {
+                    RaylibExt.DrawTexture(fanBox, boxPos[i].X, boxPos[i].Y, boxSize[i].X, boxSize[i].Y, Color.GOLD, 0, 0.5f, 0.5f);
+                }
+
+                if (!fanBoxes.Contains(i))
+                {
+                    RaylibExt.DrawTexture(box, boxPos[i].X, boxPos[i].Y, boxSize[i].X, boxSize[i].Y, Color.SKYBLUE, 0, 0.5f, 0.5f);
+                }
             }
         }
 
@@ -505,12 +523,15 @@ namespace golfGame
 
         void updateFanBoxes(Ball b)
         {
-            float fanAmount = 8;
+            float fanRotAmount = 0.3f;
+            Vector2 fanSpeed = new Vector2(0.25f, 0.25f);
 
             if (boxPos.Count() != 0)
             {
                 for (int i = 0; i < fanBoxes.Count(); i++) // for each fan box
                 {
+                    bool inFanArea = false;
+
                     float top = boxColPos[fanBoxes[i]].Y - (boxColSize[fanBoxes[i]].Y / 2);
                     float bottom = boxColPos[i].Y + (boxColSize[i].Y / 2);
                     float left = boxColPos[i].X - (boxColSize[fanBoxes[i]]).X / 2;
@@ -520,15 +541,16 @@ namespace golfGame
                     {
                         if (b.pos.X < right && b.pos.X > left && b.pos.Y < top && b.pos.Y > top - 300 && b.pos.Y > 75 + b.radius)
                         {
-                            b.pos.Y -= fanAmount;
+                            inFanArea = true;
                         }
+                        else inFanArea = false;
                     }
 
                     if (fanDirection[i] == new Vector2(0, 1)) // down
                     {
                         if (b.pos.X < right && b.pos.X > left && b.pos.Y > bottom && b.pos.Y < bottom + 300 && b.pos.Y < windowHeight - 75 - b.radius)
                         {
-                            b.pos.Y += fanAmount;
+                            inFanArea = true;
                         }
                     }
 
@@ -536,7 +558,10 @@ namespace golfGame
                     {
                         if (b.pos.Y < bottom && b.pos.Y > top && b.pos.X < left && b.pos.X > left - 300 && b.pos.X > b.radius)
                         {
-                            b.pos.X -= fanAmount;
+                            inFanArea = true;
+
+                            b.dir.X -= fanRotAmount;
+                            b.speed += fanSpeed;
                         }
                     }
 
@@ -544,8 +569,31 @@ namespace golfGame
                     {
                         if (b.pos.Y < bottom && b.pos.Y > top && b.pos.X > right && b.pos.X < right + 300 && b.pos.X < windowWidth - b.radius)
                         {
-                            b.pos.X += fanAmount;
+                            inFanArea = true;
                         }
+                    }
+                }
+            }
+        }
+
+        void updatePopBoxes()
+        {
+            if (boxPos.Count != 0)
+            {
+                for (int i = 0; i < boxPos.Count; i++)
+                {
+                    float curCooldown = popCoolDowns[i];
+
+                    if (curCooldown > 0)
+                    {
+                        curCooldown -= Raylib.GetFrameTime();
+                    }
+
+                    if (curCooldown <= 0) // do the pop
+                    {
+
+
+                        popCoolDowns[i] = orgCoolDowns[i];
                     }
                 }
             }
