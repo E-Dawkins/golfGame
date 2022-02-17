@@ -8,9 +8,11 @@ namespace golfGame
     class Ball
     {
         public Vector2 pos = new Vector2();
-        public Vector2 dir = new Vector2();
-        public Vector2 speed = new Vector2(0,0);
-        public Vector2 storedSpeed = new Vector2(0,0);
+        public Vector2 dir = new Vector2(0, -1);
+        public float rotation = -90;
+        public float rotationSpeed = 4;
+        public float speed = 0;
+        public float storedSpeed = 0;
         public float radius = 12;
     }
 
@@ -72,7 +74,6 @@ namespace golfGame
             textOffset = new Vector2(windowWidth / 4, windowHeight / 32 + 5);
 
             ball = new Ball();
-            ball.dir = new Vector2(0, -1);
 
             arrow = Raylib.LoadTexture("./Assets/arrow.png");
             arrowHead = Raylib.LoadTexture("./Assets/arrowHead.png");
@@ -140,27 +141,27 @@ namespace golfGame
                 detectBoxCol(ball);
                 drawBoxes();
 
-                if (ball.speed == new Vector2(0,0))
+                if (ball.speed == 0)
                 {
                     if (Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)) // rotate ball direction anti-clockwise
                     {
-                        ball.dir = Vec2.rotateDirection(ball.dir, -0.1f);
+                        ball.rotation -= ball.rotationSpeed;
                     }
 
                     if (Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT)) // rotate ball direction clockwise
                     {
-                        ball.dir = Vec2.rotateDirection(ball.dir, 0.1f);
+                        ball.rotation += ball.rotationSpeed;
                     }
 
                     if (Raylib.IsKeyDown(KeyboardKey.KEY_SPACE)) // increase power meter, when space held
                     {
-                        ball.storedSpeed += new Vector2(0.5f, 0.5f);
+                        ball.storedSpeed += 0.5f;
                     }
 
                     if (Raylib.IsKeyReleased(KeyboardKey.KEY_SPACE)) // use the power when space released
                     {
                         ball.speed = ball.storedSpeed;
-                        ball.storedSpeed = new Vector2(0,0);
+                        ball.storedSpeed = 0;
                         curShot += 1;
                     }
                 }
@@ -208,8 +209,8 @@ namespace golfGame
                 curButton = "";
                 firstLoad = true;
 
-                ball.speed = Vector2.Zero;
-                ball.dir = new Vector2(0, -1);
+                ball.speed = 0;
+                ball.rotation = -90;
                 curShot = 0;
 
                 RaylibExt.Clear(boxColPos, boxColSize, boxPos, boxSize, movingBoxes, fanBoxes, popBoxes, movingBoxPts, orgPts, targetNums, fanDirection, popSizes);
@@ -250,20 +251,72 @@ namespace golfGame
 
         void UpdateBall(Ball b)
         {
-            b.storedSpeed = Vector2.Clamp(b.storedSpeed, new Vector2(0, 0), new Vector2(25, 25));
-            b.speed = Vector2.Clamp(b.speed, new Vector2(0, 0), new Vector2(25, 25));
+            if (b.rotation > 0) b.rotation -= 360;
+            if (b.rotation < -360) b.rotation += 360;
+
+            b.storedSpeed = Math.Clamp(b.storedSpeed, 0, 25);
+            b.speed = Math.Clamp(b.speed, 0, 25);
+            b.dir = GetFacingDirection(b);
 
             b.pos += b.dir * b.speed;
-            if (b.speed.X > 0) b.speed.X -= 0.25f; // slow down ball each frame
-            if (b.speed.Y > 0) b.speed.Y -= 0.25f;
+            if (b.speed > 0) b.speed -= 0.25f; // slow down ball each frame
+
+            float inAngle;
 
             // bounce off screen edges
-            if (b.pos.X < 0 + ball.radius) ball.dir.X = MathF.Abs(ball.dir.X);
-            if (b.pos.X > windowWidth - ball.radius) ball.dir.X = -MathF.Abs(ball.dir.X);
-            if (b.pos.Y < 0 + 75 + ball.radius) ball.dir.Y = MathF.Abs(ball.dir.Y);
-            if (b.pos.Y > windowHeight - 75 - ball.radius) ball.dir.Y = -MathF.Abs(ball.dir.Y);
-
-            //Console.WriteLine($"{b.dir} : {b.speed}");
+            if (b.pos.X < 0 + ball.radius) // left wall
+            {
+                if (b.dir.X < 0 && b.dir.Y < 0) // moving up
+                {
+                    inAngle = MathF.Abs(b.rotation) - 90;
+                    b.rotation = -90 + inAngle;
+                }
+                    
+                if (b.dir.X < 0 && b.dir.Y > 0) // moving down
+                {
+                    inAngle = MathF.Abs(b.rotation) - 180;
+                    b.rotation = inAngle;
+                }
+            }
+            if (b.pos.X > windowWidth - ball.radius) // right wall
+            {
+                if (b.dir.X > 0 && b.dir.Y > 0) // moving down
+                {
+                    inAngle = MathF.Abs(b.rotation) - 270;
+                    b.rotation = -270 + inAngle;
+                }
+                if (b.dir.X > 0 && b.dir.Y < 0) // moving up
+                {
+                    inAngle = 90 - MathF.Abs(b.rotation);
+                    b.rotation = -90 - inAngle;
+                }
+            }
+            if (b.pos.Y < 75 + ball.radius) // top wall
+            {
+                if (b.dir.X < 0 && b.dir.Y < 0) // moving left
+                {
+                    inAngle = 180 - MathF.Abs(b.rotation);
+                    b.rotation = -180 - inAngle;
+                }
+                if (b.dir.X > 0 && b.dir.Y < 0) // moving right
+                {
+                    inAngle = 90 - MathF.Abs(b.rotation);
+                    b.rotation = -270 - inAngle;
+                }
+            }
+            if (b.pos.Y > windowHeight - 75 - ball.radius) // bottom wall
+            {
+                if (b.dir.X < 0 && b.dir.Y > 0) // moving left
+                {
+                    inAngle = MathF.Abs(b.rotation) - 180;
+                    b.rotation = -180 + inAngle;
+                }
+                if (b.dir.X > 0 && b.dir.Y > 0) // moving right
+                {
+                    inAngle = MathF.Abs(b.rotation) - 270;
+                    b.rotation = -90 + inAngle;
+                }
+            }
         }
 
         void HoleCollision(Hole h, Ball b)
@@ -282,8 +335,8 @@ namespace golfGame
                 }
 
                 // resets values for next level
-                b.speed = Vector2.Zero;
-                ball.dir = new Vector2(0, -1);
+                b.speed = 0;
+                b.rotation = -90;
                 if (holeNum < 9) holeNum += 1;
                 else holeNum = 1;
                 curShot = 0;
@@ -311,7 +364,7 @@ namespace golfGame
             Raylib.DrawRectangle(0, 0, windowWidth, 75, Color.DARKBLUE);
             Raylib.DrawRectangle(0, 75, windowWidth, 5, Color.BLACK);
             Raylib.DrawRectangleGradientH((windowWidth / 2) - 150, 25, 300, 25, Color.YELLOW, Color.RED);
-            RaylibExt.DrawTexture(arrowHead, ((windowWidth/2)-150) + (ball.storedSpeed.X * 11.15f), 45, 15, 15, Color.WHITE, 0, 0, 0);
+            RaylibExt.DrawTexture(arrowHead, ((windowWidth/2)-150) + (ball.storedSpeed * 11.15f), 45, 15, 15, Color.WHITE, 0, 0, 0);
 
             // level name
             Raylib.DrawRectangle(0, windowHeight - 75, windowWidth, 75, Color.DARKBLUE);
@@ -424,10 +477,64 @@ namespace golfGame
 
                 if (b.pos.Y < bottom && b.pos.Y > top && b.pos.X < right && b.pos.X > left) // if inside collision area
                 {
-                    if (smallestDistance == distances[0]) b.dir.Y = -MathF.Abs(b.dir.Y); // top
-                    if (smallestDistance == distances[1]) b.dir.Y = MathF.Abs(b.dir.Y); // bottom
-                    if (smallestDistance == distances[2]) b.dir.X = -MathF.Abs(b.dir.X); // left
-                    if (smallestDistance == distances[3]) b.dir.X = MathF.Abs(b.dir.X); // right
+                    float inAngle;
+
+                    if (smallestDistance == distances[0]) // top
+                    {
+                        if (b.dir.X < 0 && b.dir.Y > 0) // moving left
+                        {
+                            inAngle = MathF.Abs(b.rotation) - 180;
+                            b.rotation = -180 + inAngle;
+                        }
+                        if (b.dir.X > 0 && b.dir.Y > 0) // moving right
+                        {
+                            inAngle = MathF.Abs(b.rotation) - 270;
+                            b.rotation = -90 + inAngle;
+                        }
+                    }
+
+                    if (smallestDistance == distances[1]) // bottom
+                    {
+                        if (b.dir.X < 0 && b.dir.Y < 0) // moving left
+                        {
+                            inAngle = 180 - MathF.Abs(b.rotation);
+                            b.rotation = -180 - inAngle;
+                        }
+                        if (b.dir.X > 0 && b.dir.Y < 0) // moving right
+                        {
+                            inAngle = 90 - MathF.Abs(b.rotation);
+                            b.rotation = -270 - inAngle;
+                        }
+                    }
+
+                    if (smallestDistance == distances[2]) // left
+                    {
+                        if (b.dir.X > 0 && b.dir.Y > 0) // moving down
+                        {
+                            inAngle = MathF.Abs(b.rotation) - 270;
+                            b.rotation = -270 + inAngle;
+                        }
+                        if (b.dir.X > 0 && b.dir.Y < 0) // moving up
+                        {
+                            inAngle = 90 - MathF.Abs(b.rotation);
+                            b.rotation = -90 - inAngle;
+                        }
+                    }
+
+                    if (smallestDistance == distances[3]) // right
+                    {
+                        if (b.dir.X < 0 && b.dir.Y < 0) // moving up
+                        {
+                            inAngle = MathF.Abs(b.rotation) - 90;
+                            b.rotation = -90 + inAngle;
+                        }
+
+                        if (b.dir.X < 0 && b.dir.Y > 0) // moving down
+                        {
+                            inAngle = MathF.Abs(b.rotation) - 180;
+                            b.rotation = inAngle;
+                        }
+                    }
 
                     if (movingBoxes.Contains(i)) // moving box, do extra collision step
                     {
@@ -533,15 +640,12 @@ namespace golfGame
 
         void updateFanBoxes(Ball b)
         {
-            float fanRotAmount = 0.3f;
-            Vector2 fanSpeed = new Vector2(0.25f, 0.25f);
+            float fanRotAmount = 5f;
 
             if (boxPos.Count() != 0)
             {
                 for (int i = 0; i < fanBoxes.Count(); i++) // for each fan box
                 {
-                    bool inFanArea = false;
-
                     float top = boxColPos[fanBoxes[i]].Y - (boxColSize[fanBoxes[i]].Y / 2);
                     float bottom = boxColPos[i].Y + (boxColSize[i].Y / 2);
                     float left = boxColPos[i].X - (boxColSize[fanBoxes[i]]).X / 2;
@@ -551,16 +655,27 @@ namespace golfGame
                     {
                         if (b.pos.X < right && b.pos.X > left && b.pos.Y < top && b.pos.Y > top - 300 && b.pos.Y > 75 + b.radius)
                         {
-                            inFanArea = true;
+                            if (b.speed != 0)
+                            {
+                                if (b.dir.X < 0) b.rotation += fanRotAmount;
+                                if (b.dir.X > 0) b.rotation -= fanRotAmount;
+                            }
+
+                            b.pos.Y -= 5;
                         }
-                        else inFanArea = false;
                     }
 
                     if (fanDirection[i] == new Vector2(0, 1)) // down
                     {
                         if (b.pos.X < right && b.pos.X > left && b.pos.Y > bottom && b.pos.Y < bottom + 300 && b.pos.Y < windowHeight - 75 - b.radius)
                         {
-                            inFanArea = true;
+                            if (b.speed != 0)
+                            {
+                                if (b.dir.X < 0) b.rotation -= fanRotAmount;
+                                if (b.dir.X > 0) b.rotation += fanRotAmount;
+                            }
+
+                            b.pos.Y += 5;
                         }
                     }
 
@@ -568,18 +683,27 @@ namespace golfGame
                     {
                         if (b.pos.Y < bottom && b.pos.Y > top && b.pos.X < left && b.pos.X > left - 300 && b.pos.X > b.radius)
                         {
-                            inFanArea = true;
+                            if (b.speed != 0)
+                            {
+                                if (b.dir.Y < 0) b.rotation -= fanRotAmount;
+                                if (b.dir.Y > 0) b.rotation += fanRotAmount;
+                            }
 
-                            b.dir.X -= fanRotAmount;
-                            b.speed += fanSpeed;
+                            b.pos.X -= 5;
                         }
                     }
 
-                    if (fanDirection[i] == new Vector2(1, 0)) // left
+                    if (fanDirection[i] == new Vector2(1, 0)) // right
                     {
                         if (b.pos.Y < bottom && b.pos.Y > top && b.pos.X > right && b.pos.X < right + 300 && b.pos.X < windowWidth - b.radius)
                         {
-                            inFanArea = true;
+                            if (b.speed != 0)
+                            {
+                                if (b.dir.Y < 0) b.rotation += fanRotAmount;
+                                if (b.dir.Y > 0) b.rotation -= fanRotAmount;
+                            }
+
+                            b.pos.X += 5;
                         }
                     }
                 }
@@ -590,7 +714,7 @@ namespace golfGame
         {
             if (boxPos.Count != 0)
             {
-                for (int i = 0; i < boxPos.Count; i++)
+                for (int i = 0; i < popBoxes.Count; i++)
                 {
                     float curCooldown = popCoolDowns[i];
 
@@ -625,6 +749,14 @@ namespace golfGame
                     boxColSize[popBoxes[i]] = boxSize[popBoxes[i]];
                 }
             }
+        }
+
+        Vector2 GetFacingDirection(Ball b)
+        {
+            return new Vector2(
+                MathF.Cos((MathF.PI / 180) * b.rotation),
+                MathF.Sin((MathF.PI / 180) * b.rotation)
+                );
         }
     }
 }
