@@ -641,6 +641,7 @@ namespace golfGame
         void updateFanBoxes(Ball b)
         {
             float fanRotAmount = 5f;
+            float fanRange = 400;
 
             if (boxPos.Count() != 0)
             {
@@ -653,7 +654,7 @@ namespace golfGame
 
                     if (fanDirection[i] == new Vector2(0, -1)) // up
                     {
-                        if (b.pos.X < right && b.pos.X > left && b.pos.Y < top && b.pos.Y > top - 300 && b.pos.Y > 75 + b.radius)
+                        if (b.pos.X < right && b.pos.X > left && b.pos.Y < top && b.pos.Y > top - fanRange && b.pos.Y > 75 + b.radius)
                         {
                             if (b.speed != 0)
                             {
@@ -667,7 +668,7 @@ namespace golfGame
 
                     if (fanDirection[i] == new Vector2(0, 1)) // down
                     {
-                        if (b.pos.X < right && b.pos.X > left && b.pos.Y > bottom && b.pos.Y < bottom + 300 && b.pos.Y < windowHeight - 75 - b.radius)
+                        if (b.pos.X < right && b.pos.X > left && b.pos.Y > bottom && b.pos.Y < bottom + fanRange && b.pos.Y < windowHeight - 75 - b.radius)
                         {
                             if (b.speed != 0)
                             {
@@ -681,7 +682,7 @@ namespace golfGame
 
                     if (fanDirection[i] == new Vector2(-1, 0)) // left
                     {
-                        if (b.pos.Y < bottom && b.pos.Y > top && b.pos.X < left && b.pos.X > left - 300 && b.pos.X > b.radius)
+                        if (b.pos.Y < bottom && b.pos.Y > top && b.pos.X < left && b.pos.X > left - fanRange && b.pos.X > b.radius)
                         {
                             if (b.speed != 0)
                             {
@@ -695,7 +696,7 @@ namespace golfGame
 
                     if (fanDirection[i] == new Vector2(1, 0)) // right
                     {
-                        if (b.pos.Y < bottom && b.pos.Y > top && b.pos.X > right && b.pos.X < right + 300 && b.pos.X < windowWidth - b.radius)
+                        if (b.pos.Y < bottom && b.pos.Y > top && b.pos.X > right && b.pos.X < right + fanRange && b.pos.X < windowWidth - b.radius)
                         {
                             if (b.speed != 0)
                             {
