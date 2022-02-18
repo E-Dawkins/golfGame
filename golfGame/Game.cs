@@ -63,6 +63,7 @@ namespace golfGame
         List<int> targetNums = new List<int>();
 
         List<Vector2> fanDirection = new List<Vector2>();
+
         List<Vector2> popSizes = new List<Vector2>();
         List<Vector2> orgPopSizes = new List<Vector2>();
         List<float> popCoolDowns = new List<float>();
@@ -177,9 +178,9 @@ namespace golfGame
             }
 
             // update special boxes (moving, fan, pop)
-            updateMovingBoxes();
             updateFanBoxes(ball);
             updatePopBoxes();
+            updateMovingBoxes();
         }
 
         void paused()
@@ -213,7 +214,7 @@ namespace golfGame
                 ball.rotation = -90;
                 curShot = 0;
 
-                RaylibExt.Clear(boxColPos, boxColSize, boxPos, boxSize, movingBoxes, fanBoxes, popBoxes, movingBoxPts, orgPts, targetNums, fanDirection, popSizes);
+                RaylibExt.Clear(boxColPos, boxColSize, boxPos, boxSize, movingBoxes, fanBoxes, popBoxes, movingBoxPts, orgPts, targetNums, fanDirection, popSizes, orgPopSizes, popCoolDowns, orgCoolDowns);
             }
         }
 
@@ -341,7 +342,7 @@ namespace golfGame
                 else holeNum = 1;
                 curShot = 0;
 
-                RaylibExt.Clear(boxColPos, boxColSize, boxPos, boxSize, movingBoxes, fanBoxes, popBoxes, movingBoxPts, orgPts, targetNums, fanDirection, popSizes);
+                RaylibExt.Clear(boxColPos, boxColSize, boxPos, boxSize, movingBoxes, fanBoxes, popBoxes, movingBoxPts, orgPts, targetNums, fanDirection, popSizes, orgPopSizes, popCoolDowns, orgCoolDowns);
 
                 firstLoad = true;
             }
@@ -598,12 +599,27 @@ namespace golfGame
         {
             for (int i = 0; i < boxPos.Count; i++)
             {
-                if (fanBoxes.Contains(i))
+                if (fanBoxes.Contains(i)) // draw fan box
                 {
-                    RaylibExt.DrawTexture(fanBox, boxPos[i].X, boxPos[i].Y, boxSize[i].X, boxSize[i].Y, Color.GOLD, 0, 0.5f, 0.5f);
+                    RaylibExt.DrawTexture(fanBox, boxPos[i].X, boxPos[i].Y, boxSize[i].X, boxSize[i].Y, Color.GOLD, DirectionToRotation(fanDirection[i]), 0.5f, 0.5f);
+
+                    Vector2 rectPos = new Vector2(boxPos[i].X + (75 * fanDirection[i].X), boxPos[i].Y + (75 * fanDirection[i].Y));
+                    Vector2 rectSize = new Vector2(boxSize[i].X * MathF.Abs(fanDirection[i].X) * 5, boxSize[i].Y * MathF.Abs(fanDirection[i].Y) * 5);
+
+                    if (rectSize.X == 0) rectSize.X = 75;
+                    if (rectSize.Y == 0) rectSize.Y = 75;
+
+                    if (fanDirection[i].X == -1) rectPos.X -= 337.5f;
+                    if (fanDirection[i].X == 1 || fanDirection[i].X == 0) rectPos.X -= 37.5f;
+                    if (fanDirection[i].Y == -1) rectPos.Y -= 337.5f;
+                    if (fanDirection[i].Y == 1 || fanDirection[i].Y == 0) rectPos.Y -= 37.5f;
+
+                    Color rectCol = Raylib.ColorAlpha(Color.SKYBLUE, 0.5f);
+
+                    Raylib.DrawRectangleRounded(new Rectangle(rectPos.X, rectPos.Y, rectSize.X, rectSize.Y), 0.5f, 1, rectCol);
                 }
 
-                if (!fanBoxes.Contains(i))
+                if (!fanBoxes.Contains(i)) // draw normal box
                 {
                     RaylibExt.DrawTexture(box, boxPos[i].X, boxPos[i].Y, boxSize[i].X, boxSize[i].Y, Color.SKYBLUE, 0, 0.5f, 0.5f);
                 }
@@ -641,7 +657,7 @@ namespace golfGame
         void updateFanBoxes(Ball b)
         {
             float fanRotAmount = 5f;
-            float fanRange = 400;
+            float fanRange = 375;
 
             if (boxPos.Count() != 0)
             {
@@ -758,6 +774,12 @@ namespace golfGame
                 MathF.Cos((MathF.PI / 180) * b.rotation),
                 MathF.Sin((MathF.PI / 180) * b.rotation)
                 );
+        }
+
+        float DirectionToRotation(Vector2 inDir)
+        {
+            float rot = (float)(Math.Atan2(inDir.Y, inDir.X) / (2 * Math.PI));
+            return (rot * 360) + 180;
         }
     }
 }
